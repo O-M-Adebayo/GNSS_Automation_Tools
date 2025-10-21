@@ -48,6 +48,7 @@ from scipy.ndimage import *
 from scipy.special import erf
 from scipy.integrate import trapz
 from signal_alam import *
+from adebayo_codigo import band_pass_filter
 from mpl_toolkits.axes_grid1 import make_axes_locatable
 close('all')
 
@@ -365,7 +366,9 @@ def agw_dispersion(idim):
     
     #gma=1.33
     pn=pn_o#r_g*rho_o*tn_o;
-    c_s=1.2*sqrt(gma*pn/rho_o);#c_s=0*c_s+c_s[:,:20].mean()
+    #c_s=1.3*sqrt(gma*pn/rho_o);#c_s=0*c_s+c_s[:,:20].mean() # accepted parameter
+    # c_s=1.25*sqrt(gma*pn/rho_o);#c_s=0*c_s+c_s[:,:20].mean() # 20 degree
+    c_s=1.3*sqrt(gma*pn/rho_o);#c_s=0*c_s+c_s[:,:20].mean() # 20 degree
     gr_pn=gradient(pn)[idim];dy_m2=2.*dy_m
     zeta=(1./rho_o)*gr_pn/delta
     k0=zeta/c_s**2.
@@ -466,19 +469,32 @@ global rho_o,tn_o,pn_o,rho_amb,tn_amb,pn_amb
 
 data_sism= load('Maule_mike.npy')
 t_s=3600*data_sism[0,:]
-vel_s=0.5e-00*data_sism[1,:]
+vel_s=1.7e-00*data_sism[1,:] # accpeted parameter
+#vel_s=4.0e-00*data_sism[1,:] # testing
+#vel_s=1.7e-00*data_sism[1,:] # 90 degree
+#vel_s=2.7e-00*data_sism[1,:] # elvira
 figure(4)
-plot(t_s/3600, vel_s)
+
 
 i_ep=abs(abs(vel_s)-abs(vel_s).max()).argmin()
 i_start=abs(t_s-(t_s[i_ep]-500)).argmin()
 i_last=abs(t_s-(t_s[i_ep]+4500)).argmin()
-t_s=around(t_s[i_start:i_last:739]);vel_s=vel_s[i_start:i_last:739]
+#t_s=around(t_s[i_start:i_last:739]);vel_s=vel_s[i_start:i_last:739] # elvira
+t_s=around(t_s[i_start:i_last:740]);vel_s=vel_s[i_start:i_last:740] # accepted parameter
+#t_s=around(t_s[i_start:i_last:300]);vel_s=vel_s[i_start:i_last:300] # 15 seconds
 print (t_s[0]/3600,t_s[-1]/3600,len(t_s))
 t_ss=t_s;t_s=t_s-t_s[0];nt=len(t_s)
 dt=t_s[1]-t_s[0]
 i_max=argmax(abs(vel_s))
+
+
 vel_s[0:i_max-10][abs(vel_s[0:i_max-10])<3e-01]=0
+#vel_s[0:i_max-10][abs(vel_s[0:i_max-10])<3e-01]=0
+
+#vel_s = band_pass_filter(vel_s, t_s/3600, lowcut=0.002, highcut=0.007, dt=dt)
+plot((t_s/3600) + 6.56, vel_s, color='g')
+xlabel("Time (UT, hr)")
+ylabel("Ground uplift (m/s)")
 # figure(2,(12,12))
 # plot(t_s,vel_s,'r')
 # vel_s=convolve(vel_s,ones((4,))/4,mode='same')
@@ -568,39 +584,99 @@ x3_m=x3*1.e+03;y3_m=y3*1.e+03
 # Saul 2
 def fonte_rayleigh():
     v_new = 0 * v3
-    v0 = v_new + 2.8  # km/s
+    #v0 = v_new + 0.0000001 # km/s 90 degree
+    #v0 = v_new + 2.8 # km/s accepted parameter
+    #v0 = v_new + 4.0 # 20 degree
+    v0 = v_new + 2.6
     
-    # Primera perturbación
+    ##Primera perturbación
     t_phase1 = (abs(x3) - 0) / v0
     sigma = dt / 2.
     t_phase1[v0 == 0] = 0
-    f_prop1 = 1*skew((t3-250), 1 * t_phase1, sigma, 0)
-    sigma_x1 = 5 * dx_m * 1.e-03 + 0 * v0  # 25 km
+    f_prop1 = 1*skew((t3-450), 1 * t_phase1, sigma, 0) # accepted parameter
+    #f_prop1 = 1*skew((t3-450+200), 1 * t_phase1, sigma, 0)
+    sigma_x1 = 15 * dx_m * 1.e-03 + 0 * v0  # 25 km
     # Segunda perturbación a 1000 km en t_center2
     
-    t_phase2 = (abs(x3) - 0) / v0
+    t_phase2 = (abs(x3) -0) / v0
+    # f_prop2 = 1*skew((t3 - 250), 1 * t_phase2, sigma, 0) # accepted parameter
     f_prop2 = 1*skew((t3 - 250), 1 * t_phase2, sigma, 0)
     sigma_x2 = 15 * dx_m * 1.e-03 + 0 * v0  # 25 km
     
     # # #x_center3 = 300  # km
     # # #t_center3 = 300  # 
-    t_phase3 = (abs(x3) + 500) / v0
+    t_phase3 = (abs(x3) - 0) / v0
+    # f_prop3 = skew((t3 - 250), 1 * t_phase3, sigma, 0) #accepted parameter
     f_prop3 = skew((t3 - 250), 1 * t_phase3, sigma, 0)
     #sigma_x3 = 10 * dx_m * 1.e-03 + 0 * v0  # 25 km
    
     for k in range(ny):
         for j in range(nx):
 
-            #fonte_falha = 11.1*skew(x3[:, j, k], 350, sigma_x2[:, j, k]/3, 15)
-            fonte_falha = 12.1*skew(x3[:, j, k], 340, sigma_x2[:, j, k], 15)
-            fonte_rl2 = skew(x3[:, j, k], 150, sigma_x1[:, j, k], 0)
             #fonte_rl3 = skew(x3[:, j, k], 400, sigma_x3[:, j, k], 15)
-            fonte_rl3 = 1.5*skew(x3[:, j, k], 600, sigma_x2[:, j, k], 10)
+            #fonte_rl3 = 4.0*skew(x3[:, j, k], 600, sigma_x2[:, j, k]/2, 13) # accepted parameter
+            #fonte_falha = 3.1*skew(x3[:, j, k], 350, sigma_x2[:, j, k]/3, 15)
+            #fonte_falha = 8.0*skew(x3[:, j, k], 350, sigma_x2[:, j, k]/4, 10)            
+            
+            # # Working configuration
+            # fonte_falha = 8.0*skew(x3[:, j, k], 350, sigma_x2[:, j, k]/5, 15) # accepted parameter
+            # fonte_rl2 = 3.0*skew(x3[:, j, k], 150, sigma_x2[:, j, k]/1., 0) # accepted parameter
+            # fonte_rl3 = 4.0*skew(x3[:, j, k], 600, sigma_x1[:, j, k]/2, 13)
+            
+            # v_new[:, j, k] = ((fonte_falha)* convolve(f_prop2[:, j, k], v3[:, j, k])[:nt] +
+            #                   fonte_rl2 * convolve(f_prop2[:, j, k], v3[:, j, k])[:nt] +
+            #                   fonte_rl3 * convolve(f_prop1[:, j, k], v3[:, j, k])[:nt])
+            
+            
+            # fonte_falha = 1.0*skew(x3[:, j, k], 350, sigma_x2[:, j, k]/5, 15) # 90 degree
+            # fonte_rl2 = 3.0*skew(x3[:, j, k], 150, sigma_x2[:, j, k]*2., 0) # 90 degree
+            # #fonte_rl3 = skew(x3[:, j, k], 400, sigma_x3[:, j, k], 15)
+            # fonte_rl3 = 4.0*skew(x3[:, j, k], 600, sigma_x2[:, j, k]/2, 13) # 90 degree
+            
+            
+            # fonte_falha = 0.5*skew(x3[:, j, k], 350, sigma_x2[:, j, k]/15, 15) # 20 degree
+            # fonte_rl2 = 1.5*skew(x3[:, j, k], 150, sigma_x2[:, j, k]/1., 10) # 20 degree
+            # #fonte_rl3 = skew(x3[:, j, k], 400, sigma_x3[:, j, k], 15)
+            # fonte_rl3 = 0.1*skew(x3[:, j, k], 600, sigma_x2[:, j, k]/7, 13) # 20 degree
+            
+            
+            # fonte_falha = 4.0*skew(x3[:, j, k], 350, sigma_x2[:, j, k]/5, 15) # elvira
+            # fonte_rl2 = 4.0*skew(x3[:, j, k], 150, sigma_x2[:, j, k]/1., 0) # elvira
+            # #fonte_rl3 = skew(x3[:, j, k], 400, sigma_x3[:, j, k], 15)
+            # fonte_rl3 = 4.0*skew(x3[:, j, k], 600, sigma_x2[:, j, k]/2, 13) # elvira
+            
+            ##### first peak off
+            
+            
+            fonte_falha = 8.0*skew(x3[:, j, k], 350, sigma_x2[:, j, k]/5, 15) # accepted parameter
+            fonte_rl2 = 1.0*skew(x3[:, j, k], 200, sigma_x2[:, j, k]/5., 10) # accepted parameter
+            fonte_rl3 = 4.0*skew(x3[:, j, k], 600, sigma_x1[:, j, k]/(1.5+2), 10)
+            
+            # fonte_falha = 6.0*skew(x3[:, j, k], 250, sigma_x2[:, j, k]/5, 5) # testing
+            # fonte_rl2 = (5.0)*skew(x3[:, j, k], (70-40), sigma_x2[:, j, k]/(5.), 5) # testing
+            # fonte_rl3 = (0*1.0)*skew(x3[:, j, k], 600, sigma_x1[:, j, k]/1.5, 5) # testing
             
             v_new[:, j, k] = ((fonte_falha)* convolve(f_prop2[:, j, k], v3[:, j, k])[:nt] +
-                              fonte_rl2 * convolve(f_prop1[:, j, k], v3[:, j, k])[:nt] +
-                              fonte_rl3 * convolve(f_prop3[:, j, k], v3[:, j, k])[:nt])
-
+                              fonte_rl2 * convolve(f_prop2[:, j, k], v3[:, j, k])[:nt] +
+                              fonte_rl3 * convolve(f_prop1[:, j, k], v3[:, j, k])[:nt])
+            
+    #v0=v_new+2.8*(1-(abs(x3)-700)/700.)
+    # v0[abs(x3) <=500]=0.5
+    # t_phase=(abs(x3)-500)/v0
+    # sigma_t=dt/2.
+    # f_prop=skew(t3,t_phase, sigma_t, 0)
+    # f_prop0=skew(t3,t_phase, sigma_t, 0)
+    
+    # sigma_x=10*dx_m*1.e-03
+    
+    # for k in range (ny):
+    #     for j in range (nx):
+    #         fonte_main=1+0*skew(x3[:,j,k], 850, sigma_x, 3)
+    #         fonte_fault=skew(x3[:,j,k], 150, sigma_x/3, 3)
+    #         v_main=fonte_main*convolve(f_prop[:,j,k], v3[:,j,k])[:nt]
+    #         v_fault=fonte_fault*convolve(f_prop[:,j,k], v3[:,j,k])[:nt]
+    #         v_new[:,j,k]=v_main+0*v_fault/10.
+    
     return v_new
 v_new=fonte_rayleigh()
 
@@ -737,7 +813,9 @@ for ik in range (len(lambda_y0)):
             wy0=agw_propagator_v(omega,wk_y,wk_x);
             wy_ground=wy0[:,:,0]
             wy_ondas=wy0*w_alt*wy_damp*wy_growth
-            f_source=skew(x3, 150, 3*dx, 0)
+            # f_source=skew(x3, 150, 5*dx, 0) # accepted parameter
+            f_source=skew(x3, 150, 5*dx, 0) # elvira
+            #f_source=skew(x3, 150, 25*dx, 0) # 20 and 90 degree
             wy0_x=(repeat(wy_ondas.max(1)[:,newaxis,:],nx,axis=1)*f_source+wy_ondas)/2.   
             #wy0_x=(repeat(wy_ondas.max(1)[:,newaxis,:],nx,axis=1)+wy_ondas)/2.
             wy_x=agw_propagator_h(omega, wk_y, wk_x, wy0_x) 
@@ -823,13 +901,36 @@ save('wx3.npy',array(wx3))
 #save('wave_all.npy',array(wave_all))
 save('pr3.npy',array(pr3))
 save('n3.npy',array(n3))
+save('t3.npy',array(t3))
+save('v_new.npy',array(v_new))
+
+
+
+#%%
+figure(13, (5, 8))
+subplot(111)
+for i in range(0, len(x), 8):  # pick several x indices
+    
+    v_new[100:,i,0] = 0
+
+    plot((t3[:,0,0]/3600)+6.56, (x[i]) + (100*v_new[:,i,0]), color='g', label=f'x={x[i]:.2f}')
+#legend()
+xlabel("Time (UT, hr)")
+ylabel("Epicentral distance (km)")
+title("$U_{input}$", fontweight='bold')
+axis((6.56, 7.95, -100,2000))
+tight_layout()
 
 
 figure(11,(12,12))
+subplot(121)
 pcolormesh(t3[:,0,0],x,v_new[:,:,0].T)
 
-figure(12,(12,12))
-dn=gradient(array(n3)[:,:,10])[0]
+
+
+figure(11,(12,12))
+subplot(122)
+dn=gradient(array(n3)[:,:,0:10].sum(2))[0]
 vm=abs(dn).max()/2
 pcolormesh(t3[:,0,0],x,dn.T,cmap=cm.seismic,vmax=vm,vmin=-vm)
 
